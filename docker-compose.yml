@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: zapdetaily
+      POSTGRES_USER: zapdetaily
+      POSTGRES_PASSWORD: zapdetaily
+    ports:
+      - "5432:5432"
+    volumes:
+      - zapdetaily-postgres:/var/lib/postgresql/data
+
+volumes:
+  zapdetaily-postgres:
