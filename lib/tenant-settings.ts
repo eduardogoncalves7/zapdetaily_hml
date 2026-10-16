@@ -23,6 +23,8 @@ export type TenantSettings = {
   horarioFuncionamento: BusinessHours;
   fusoHorario: string;
   portesVeiculo: VehicleSize[];
+  intervaloGradeMinutos: number;
+  capacidadeSimultanea: number;
 };
 
 const DEFAULT_COLORS: TenantColors = {
@@ -61,6 +63,8 @@ export function getTenantSettingsFromEnv(): TenantSettings {
     horarioFuncionamento: parseJson<BusinessHours>(env.ZD_TENANT_BUSINESS_HOURS, {}),
     fusoHorario: env.ZD_TENANT_TIMEZONE,
     portesVeiculo: parseJson<VehicleSize[]>(env.ZD_TENANT_VEHICLE_SIZES, DEFAULT_VEHICLE_SIZES),
+    intervaloGradeMinutos: env.ZD_BOOKING_INTERVAL_MINUTES,
+    capacidadeSimultanea: env.ZD_BOOKING_CAPACITY,
   };
 }
 
@@ -78,8 +82,10 @@ export async function getTenantSettings(): Promise<TenantSettings> {
       horario_funcionamento: BusinessHours;
       fuso_horario: string;
       portes_veiculo: VehicleSize[];
+      intervalo_grade_minutos: number;
+      capacidade_simultanea: number;
     }>(`SELECT nome_publico, slogan, logo_url, cores, whatsapp, endereco,
-               instagram, horario_funcionamento, fuso_horario, portes_veiculo
+               instagram, horario_funcionamento, fuso_horario, portes_veiculo, intervalo_grade_minutos, capacidade_simultanea
           FROM tenant_settings ORDER BY atualizado_em ASC LIMIT 1`);
     const row = result.rows[0];
     if (!row) return fallback;
@@ -94,6 +100,8 @@ export async function getTenantSettings(): Promise<TenantSettings> {
       horarioFuncionamento: row.horario_funcionamento,
       fusoHorario: row.fuso_horario,
       portesVeiculo: row.portes_veiculo,
+      intervaloGradeMinutos: row.intervalo_grade_minutos,
+      capacidadeSimultanea: row.capacidade_simultanea,
     };
   } catch {
     return fallback;
@@ -105,16 +113,17 @@ export async function getTenantSettingsForTenant(tenantId: string): Promise<Tena
   try {
     const result = await getDb().query<{
       nome_publico: string; slogan: string; logo_url: string; cores: TenantColors; whatsapp: string;
-      endereco: string; instagram: string; horario_funcionamento: BusinessHours; fuso_horario: string; portes_veiculo: VehicleSize[];
+      endereco: string; instagram: string; horario_funcionamento: BusinessHours; fuso_horario: string; portes_veiculo: VehicleSize[]; intervalo_grade_minutos: number; capacidade_simultanea: number;
     }>(`SELECT nome_publico, slogan, logo_url, cores, whatsapp, endereco, instagram,
-               horario_funcionamento, fuso_horario, portes_veiculo
+               horario_funcionamento, fuso_horario, portes_veiculo, intervalo_grade_minutos, capacidade_simultanea
           FROM tenant_settings WHERE tenant_id = $1`, [tenantId]);
     const row = result.rows[0];
     if (!row) return fallback;
     return { nome: row.nome_publico, slogan: row.slogan, logoUrl: row.logo_url,
       cores: { ...fallback.cores, ...row.cores }, whatsapp: row.whatsapp, endereco: row.endereco,
       instagram: row.instagram, horarioFuncionamento: row.horario_funcionamento,
-      fusoHorario: row.fuso_horario, portesVeiculo: row.portes_veiculo };
+      fusoHorario: row.fuso_horario, portesVeiculo: row.portes_veiculo,
+      intervaloGradeMinutos: row.intervalo_grade_minutos, capacidadeSimultanea: row.capacidade_simultanea };
   } catch { return fallback; }
 }
 
