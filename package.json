@@ -12,6 +12,7 @@
     "start": "node .next/standalone/server.js",
     "db:migrate": "node scripts/migrate.mjs",
     "db:seed": "node scripts/seed.mjs",
+    "seed:demo": "node scripts/seed-demo.mjs",
     "seed:clean": "node scripts/seed.mjs --clean",
     "admin:create": "tsx scripts/admin-create.ts"
   },
@@ -20,6 +21,7 @@
     "pg": "^8.16.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "sharp": "^0.35.5",
     "zod": "^4.1.12"
   },
   "devDependencies": {

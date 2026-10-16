@@ -100,6 +100,24 @@ export async function getTenantSettings(): Promise<TenantSettings> {
   }
 }
 
+export async function getTenantSettingsForTenant(tenantId: string): Promise<TenantSettings> {
+  const fallback = getTenantSettingsFromEnv();
+  try {
+    const result = await getDb().query<{
+      nome_publico: string; slogan: string; logo_url: string; cores: TenantColors; whatsapp: string;
+      endereco: string; instagram: string; horario_funcionamento: BusinessHours; fuso_horario: string; portes_veiculo: VehicleSize[];
+    }>(`SELECT nome_publico, slogan, logo_url, cores, whatsapp, endereco, instagram,
+               horario_funcionamento, fuso_horario, portes_veiculo
+          FROM tenant_settings WHERE tenant_id = $1`, [tenantId]);
+    const row = result.rows[0];
+    if (!row) return fallback;
+    return { nome: row.nome_publico, slogan: row.slogan, logoUrl: row.logo_url,
+      cores: { ...fallback.cores, ...row.cores }, whatsapp: row.whatsapp, endereco: row.endereco,
+      instagram: row.instagram, horarioFuncionamento: row.horario_funcionamento,
+      fusoHorario: row.fuso_horario, portesVeiculo: row.portes_veiculo };
+  } catch { return fallback; }
+}
+
 export function tenantSettingsToCssVariables(settings: TenantSettings): Record<`--${string}`, string> {
   return {
     "--zd-color-primary": settings.cores.primary,
