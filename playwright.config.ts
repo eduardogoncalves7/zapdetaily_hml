@@ -7,5 +7,11 @@ export default defineConfig({
     command: "npm run dev -- --hostname 127.0.0.1 --port 3000",
     url: "http://127.0.0.1:3000/api/health",
     reuseExistingServer: !process.env.CI,
+    env: {
+      DATABASE_URL: "postgres://zapdetaily:zapdetaily@127.0.0.1:5432/zapdetaily",
+      APP_URL: "http://127.0.0.1:3000",
+      NODE_ENV: "test",
+      ZD_PLAN: "basic",
+    },
   },
 });
