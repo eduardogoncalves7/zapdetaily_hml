@@ -97,3 +97,7 @@ Por causa desse bloqueio, ficaram **não executados**:
 2. Reexecutar exatamente os cenários de Postgres, container, advisory lock e rollback listados acima.
 3. Rodar `npm run test:e2e` com o servidor local.
 4. Só depois iniciar o primeiro módulo de negócio.
+
+## Publicação da branch
+
+**Executei** `git push origin feat/fundacao`, conforme solicitado. O push não foi possível porque este repositório não possui nenhum remote configurado; `git remote` não retornou remotes. Nenhum merge foi feito.
