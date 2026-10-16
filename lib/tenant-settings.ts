@@ -41,6 +41,9 @@ const DEFAULT_VEHICLE_SIZES: VehicleSize[] = [
   { key: "medio", label: "Médio" },
   { key: "grande", label: "Grande" },
 ];
+const DEFAULT_BUSINESS_HOURS: BusinessHours = {
+  domingo: { fechado: true }, segunda: { fechado: true }, terca: { fechado: true }, quarta: { fechado: true }, quinta: { fechado: true }, sexta: { fechado: true }, sabado: { fechado: true },
+};
 
 function parseJson<T>(value: string, fallback: T): T {
   try {
@@ -60,7 +63,7 @@ export function getTenantSettingsFromEnv(): TenantSettings {
     whatsapp: env.ZD_TENANT_WHATSAPP,
     endereco: env.ZD_TENANT_ADDRESS,
     instagram: env.ZD_TENANT_INSTAGRAM,
-    horarioFuncionamento: parseJson<BusinessHours>(env.ZD_TENANT_BUSINESS_HOURS, {}),
+    horarioFuncionamento: { ...DEFAULT_BUSINESS_HOURS, ...parseJson<BusinessHours>(env.ZD_TENANT_BUSINESS_HOURS, {}) },
     fusoHorario: env.ZD_TENANT_TIMEZONE,
     portesVeiculo: parseJson<VehicleSize[]>(env.ZD_TENANT_VEHICLE_SIZES, DEFAULT_VEHICLE_SIZES),
     intervaloGradeMinutos: env.ZD_BOOKING_INTERVAL_MINUTES,
@@ -97,7 +100,7 @@ export async function getTenantSettings(): Promise<TenantSettings> {
       whatsapp: row.whatsapp,
       endereco: row.endereco,
       instagram: row.instagram,
-      horarioFuncionamento: row.horario_funcionamento,
+      horarioFuncionamento: { ...DEFAULT_BUSINESS_HOURS, ...row.horario_funcionamento },
       fusoHorario: row.fuso_horario,
       portesVeiculo: row.portes_veiculo,
       intervaloGradeMinutos: row.intervalo_grade_minutos,
@@ -121,7 +124,7 @@ export async function getTenantSettingsForTenant(tenantId: string): Promise<Tena
     if (!row) return fallback;
     return { nome: row.nome_publico, slogan: row.slogan, logoUrl: row.logo_url,
       cores: { ...fallback.cores, ...row.cores }, whatsapp: row.whatsapp, endereco: row.endereco,
-      instagram: row.instagram, horarioFuncionamento: row.horario_funcionamento,
+      instagram: row.instagram, horarioFuncionamento: { ...DEFAULT_BUSINESS_HOURS, ...row.horario_funcionamento },
       fusoHorario: row.fuso_horario, portesVeiculo: row.portes_veiculo,
       intervaloGradeMinutos: row.intervalo_grade_minutos, capacidadeSimultanea: row.capacidade_simultanea };
   } catch { return fallback; }

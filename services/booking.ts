@@ -51,7 +51,7 @@ export function zonedLocalToUtc(date: string, time: string, timezone: string): D
 
 function minutes(time: string): number { const [hour, minute] = time.split(":").map(Number); return hour * 60 + minute; }
 function timeString(value: number): string { return `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`; }
-function scheduleFor(settings: Pick<TenantSettings, "horarioFuncionamento" | "fusoHorario">, date: string): { abertura: string; fechamento: string } | null {
+export function scheduleFor(settings: Pick<TenantSettings, "horarioFuncionamento" | "fusoHorario">, date: string): { abertura: string; fechamento: string } | null {
   const day = WEEK_DAYS[new Intl.DateTimeFormat("en-US", { timeZone: settings.fusoHorario, weekday: "long" }).format(zonedLocalToUtc(date, "12:00", settings.fusoHorario)).toLowerCase()];
   const hours = settings.horarioFuncionamento;
   const key = Object.keys(hours).find((candidate) => DAY_ALIASES[day]?.includes(candidate.toLowerCase()));
@@ -61,7 +61,7 @@ function scheduleFor(settings: Pick<TenantSettings, "horarioFuncionamento" | "fu
 }
 
 type BookingConfig = Pick<TenantSettings, "horarioFuncionamento" | "fusoHorario" | "intervaloGradeMinutos" | "capacidadeSimultanea">;
-async function getBookingConfig(tenantId: string, client: Pool | PoolClient = getDb()): Promise<BookingConfig> {
+export async function getBookingConfig(tenantId: string, client: Pool | PoolClient = getDb()): Promise<BookingConfig> {
   const result = await client.query<{ horario_funcionamento: BusinessHours; fuso_horario: string; intervalo_grade_minutos: number; capacidade_simultanea: number }>("SELECT horario_funcionamento, fuso_horario, intervalo_grade_minutos, capacidade_simultanea FROM tenant_settings WHERE tenant_id = $1", [tenantId]);
   const row = result.rows[0];
   if (!row) throw new BookingValidationError("Tenant não encontrado");
@@ -78,6 +78,10 @@ async function getSelectedServices(tenantId: string, serviceIds: string[], porte
 function dayRange(date: string, timezone: string): { start: Date; end: Date } { return { start: zonedLocalToUtc(date, "00:00", timezone), end: zonedLocalToUtc(date, "23:59", timezone) }; }
 const overlaps = overlapsInterval;
 
+export async function validateSlotAvailability(tenantId: string, date: string, horario: string, durationMinutes: number, excludeId?: string, client: Pool | PoolClient = getDb()): Promise<{ inicio: Date; fim: Date }> {
+  const settings = await getBookingConfig(tenantId, client); const schedule = scheduleFor(settings, date); if (!schedule) throw new BookingConflictError("Dia fora do horário de funcionamento"); const startMinutes = minutes(horario); if (startMinutes < minutes(schedule.abertura) || startMinutes + durationMinutes > minutes(schedule.fechamento) || startMinutes % settings.intervaloGradeMinutos !== minutes(schedule.abertura) % settings.intervaloGradeMinutos) throw new BookingConflictError("Horário fora da grade disponível"); const inicio = zonedLocalToUtc(date, horario, settings.fusoHorario); const fim = new Date(inicio.getTime() + durationMinutes * 60_000); const blocked = await client.query("SELECT 1 FROM bloqueios WHERE tenant_id=$1 AND inicio_em < $3 AND fim_em > $2 LIMIT 1", [tenantId, inicio, fim]); if (blocked.rowCount) throw new BookingConflictError("Horário bloqueado"); const query = excludeId ? "SELECT COUNT(*)::text AS count FROM agendamentos WHERE tenant_id=$1 AND status IN ('pendente','confirmado') AND id <> $4 AND inicio_em < $3 AND fim_em > $2" : "SELECT COUNT(*)::text AS count FROM agendamentos WHERE tenant_id=$1 AND status IN ('pendente','confirmado') AND inicio_em < $3 AND fim_em > $2"; const values = excludeId ? [tenantId, inicio, fim, excludeId] : [tenantId, inicio, fim]; const concurrent = await client.query<{ count: string }>(query, values); if (Number(concurrent.rows[0].count) >= settings.capacidadeSimultanea) throw new BookingConflictError("Horário indisponível"); return { inicio, fim };
+}
+
 export async function listAvailableSlots(tenantId: string, date: string, serviceIds: string[], porte: string): Promise<AvailabilitySlot[]> {
   const settings = await getBookingConfig(tenantId); const schedule = scheduleFor(settings, date); if (!schedule) return [];
   const services = await getSelectedServices(tenantId, serviceIds, porte); const duration = services.reduce((sum, service) => sum + service.duracao_minutos, 0); const range = dayRange(date, settings.fusoHorario);
@@ -90,7 +94,7 @@ export async function listAvailableSlots(tenantId: string, date: string, service
   return slots;
 }
 
-export async function createBooking(tenantId: string, input: BookingInput, customerToken?: string): Promise<BookingResult> {
+export async function createBooking(tenantId: string, input: BookingInput, customerToken?: string, auditActorId?: string): Promise<BookingResult> {
   const client = await getDb().connect();
   try {
     await client.query("BEGIN");
@@ -105,6 +109,7 @@ export async function createBooking(tenantId: string, input: BookingInput, custo
     const token = customerToken ?? randomBytes(32).toString("base64url"); const keyHash = hashCustomerKey(token); const key = await client.query<{ id: string }>("INSERT INTO cliente_chaves (tenant_id, chave_hash, telefone_normalizado) VALUES ($1,$2,$3) ON CONFLICT (tenant_id, chave_hash) DO UPDATE SET telefone_normalizado=EXCLUDED.telefone_normalizado RETURNING id", [tenantId, keyHash, normalizePhone(input.telefone)]);
     const appointment = await client.query<{ id: string }>("INSERT INTO agendamentos (tenant_id, cliente_chave_id, idempotency_key, nome_cliente, telefone, porte, modelo_veiculo, placa_veiculo, inicio_em, fim_em) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id", [tenantId, key.rows[0].id, input.idempotencyKey, input.nome, input.telefone, input.porte, input.modelo || null, input.placa || null, inicio, fim]);
     let totalCentavos = 0; for (const service of services) { totalCentavos += service.valor_centavos; await client.query("INSERT INTO agendamento_itens (agendamento_id, servico_id, nome_snapshot, porte_snapshot, valor_centavos_snapshot, duracao_minutos_snapshot) VALUES ($1,$2,$3,$4,$5,$6)", [appointment.rows[0].id, service.id, service.nome, input.porte, service.valor_centavos, service.duracao_minutos]); }
+    if (auditActorId) await client.query("INSERT INTO audit_log (tenant_id, ator_admin_id, entidade, entidade_id, acao, status_novo, detalhes) VALUES ($1,$2,'agendamento',$3,'criado_manualmente','pendente','{\"origem\":\"admin\"}'::jsonb)", [tenantId, auditActorId, appointment.rows[0].id]);
     await client.query("COMMIT"); return { id: appointment.rows[0].id, status: "pendente", inicio: inicio.toISOString(), fim: fim.toISOString(), totalCentavos, ...(customerToken ? {} : { accessToken: token }) };
   } catch (error) { await client.query("ROLLBACK").catch(() => undefined); throw error; } finally { client.release(); }
 }

@@ -1,0 +1,12 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { requireApiAdmin } from "@/lib/admin-auth";
+import { requireSameOrigin } from "@/lib/origin";
+import { hasCapability } from "@/lib/plans";
+import { getTenantSettingsForTenant } from "@/lib/tenant-settings";
+import { getDb } from "@/lib/db";
+
+const schema = z.object({ nome: z.string().min(1).max(160), slogan: z.string().max(300), whatsapp: z.string().max(30), endereco: z.string().max(500), instagram: z.string().max(200), fusoHorario: z.string().min(1).max(80), horarioFuncionamento: z.record(z.string(), z.object({ abertura: z.string().optional(), fechamento: z.string().optional(), fechado: z.boolean().optional() })), portesVeiculo: z.array(z.object({ key: z.string().min(1), label: z.string().min(1) })).min(1), intervaloGradeMinutos: z.number().int().positive(), capacidadeSimultanea: z.number().int().positive() });
+export const dynamic = "force-dynamic";
+export async function GET(request: Request) { if (!hasCapability("adminPanel")) return NextResponse.json({ error: "Recurso não disponível neste plano" }, { status: 404 }); const admin = await requireApiAdmin(request); if (admin instanceof NextResponse) return admin; return NextResponse.json({ settings: await getTenantSettingsForTenant(admin.tenantId) }); }
+export async function PUT(request: Request) { if (!hasCapability("adminPanel")) return NextResponse.json({ error: "Recurso não disponível neste plano" }, { status: 404 }); const admin = await requireApiAdmin(request); if (admin instanceof NextResponse) return admin; const originError = requireSameOrigin(request); if (originError) return originError; try { const input = schema.parse(await request.json()); await getDb().query("UPDATE tenant_settings SET nome_publico=$1, slogan=$2, whatsapp=$3, endereco=$4, instagram=$5, fuso_horario=$6, horario_funcionamento=$7::jsonb, portes_veiculo=$8::jsonb, intervalo_grade_minutos=$9, capacidade_simultanea=$10, atualizado_em=now() WHERE tenant_id=$11", [input.nome, input.slogan, input.whatsapp, input.endereco, input.instagram, input.fusoHorario, JSON.stringify(input.horarioFuncionamento), JSON.stringify(input.portesVeiculo), input.intervaloGradeMinutos, input.capacidadeSimultanea, admin.tenantId]); return NextResponse.json({ settings: await getTenantSettingsForTenant(admin.tenantId) }); } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Configuração inválida" }, { status: 400 }); } }
