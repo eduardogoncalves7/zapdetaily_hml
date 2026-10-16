@@ -1,5 +1,5 @@
 import { Pool } from "pg";
-import { getEnv } from "@/lib/env";
+import { getEnv } from "./env";
 
 declare global {
   var __zapdetailyPool: Pool | undefined;

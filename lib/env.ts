@@ -16,6 +16,7 @@ const envSchema = z.object({
   ZD_TENANT_INSTAGRAM: z.string().default(""),
   ZD_TENANT_BUSINESS_HOURS: z.string().default("{}"),
   ZD_TENANT_TIMEZONE: z.string().default("America/Sao_Paulo"),
+  ZD_ADMIN_SESSION_TTL_SECONDS: z.coerce.number().int().positive().default(28800),
   ZD_TENANT_VEHICLE_SIZES: z.string().default("[{\"key\":\"moto\",\"label\":\"Moto\"},{\"key\":\"pequeno\",\"label\":\"Pequeno\"},{\"key\":\"medio\",\"label\":\"Médio\"},{\"key\":\"grande\",\"label\":\"Grande\"}]"),
 });
 
