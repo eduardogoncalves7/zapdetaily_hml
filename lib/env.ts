@@ -6,6 +6,17 @@ const envSchema = z.object({
   APP_URL: z.string().url().default("http://localhost:3000"),
   DATABASE_URL: z.string().min(1, "DATABASE_URL é obrigatória"),
   DB_MIGRATION_TIMEOUT_MS: z.coerce.number().int().positive().default(120000),
+  ZD_PLAN: z.string().default("basic"),
+  ZD_TENANT_NAME: z.string().default("Tenant Demo"),
+  ZD_TENANT_SLOGAN: z.string().default("Seu cuidado, do seu jeito."),
+  ZD_TENANT_LOGO_URL: z.string().default(""),
+  ZD_TENANT_COLORS: z.string().default("{}"),
+  ZD_TENANT_WHATSAPP: z.string().default(""),
+  ZD_TENANT_ADDRESS: z.string().default(""),
+  ZD_TENANT_INSTAGRAM: z.string().default(""),
+  ZD_TENANT_BUSINESS_HOURS: z.string().default("{}"),
+  ZD_TENANT_TIMEZONE: z.string().default("America/Sao_Paulo"),
+  ZD_TENANT_VEHICLE_SIZES: z.string().default("[{\"key\":\"moto\",\"label\":\"Moto\"},{\"key\":\"pequeno\",\"label\":\"Pequeno\"},{\"key\":\"medio\",\"label\":\"Médio\"},{\"key\":\"grande\",\"label\":\"Grande\"}]"),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
