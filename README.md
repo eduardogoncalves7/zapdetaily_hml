@@ -20,3 +20,7 @@ Abra <http://localhost:3000>. O liveness está em `/api/health`; o readiness em 
 `npm run dev`, `lint`, `typecheck`, `test`, `test:e2e`, `build`, `db:migrate`, `db:seed` e `seed:clean` estão definidos no `package.json`.
 
 Para remover os dados demo: `npm run seed:clean`. O Dockerfile usa build standalone, usuário não-root e mantém o servidor subindo mesmo quando a migração falha; nesse caso `/api/health` continua disponível e `/api/ready` retorna `503`.
+
+## Primeiro administrador
+
+Depois da migração e do seed, execute `npm run admin:create`. O comando pede e-mail, senha, nome e slug do tenant; a senha não é ecoada nem registrada. Em automações, use `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` e `ADMIN_TENANT_SLUG` somente no ambiente do processo, nunca em arquivos versionados.
