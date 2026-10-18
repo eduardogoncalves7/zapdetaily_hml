@@ -1,8 +1,5 @@
+import { redirect } from "next/navigation";
+import { getCurrentAdminFromCookies } from "@/lib/admin-auth";
 import { hasCapability } from "@/lib/plans";
-
-export default function FinancePage() {
-  if (!hasCapability("finance")) {
-    return <main className="mx-auto max-w-2xl px-6 py-16"><h1>Recurso não disponível neste plano</h1></main>;
-  }
-  return <main className="mx-auto max-w-2xl px-6 py-16"><h1>Financeiro</h1><p>O módulo financeiro está disponível no plano atual.</p></main>;
-}
+import FinanceDashboard from "./finance-dashboard";
+export default async function FinancePage() { if (!hasCapability("finance")) return <main className="mx-auto max-w-4xl px-6 py-16"><h1>Recurso não disponível neste plano</h1></main>; if (!await getCurrentAdminFromCookies()) redirect("/admin/login"); return <FinanceDashboard />; }
