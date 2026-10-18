@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import pg from "pg";
 
-const databaseUrl = process.env.FINANCE_TEST_DATABASE_URL;
+const databaseUrl = process.env.FINANCE_TEST_DATABASE_URL ?? process.env.DATABASE_URL;
 describe.skipIf(!databaseUrl)("financeiro no Postgres real", () => {
   it("encontra tabelas, constraints e índice de idempotência após migrações", async () => {
     const pool = new pg.Pool({ connectionString: databaseUrl });
@@ -10,6 +10,8 @@ describe.skipIf(!databaseUrl)("financeiro no Postgres real", () => {
       expect(tables.rows.map((row) => row.table_name).sort()).toEqual(["audit_log", "financeiro_categorias", "financeiro_lancamentos"]);
       const index = await pool.query<{ indexname: string }>("SELECT indexname FROM pg_indexes WHERE tablename='financeiro_lancamentos' AND indexname='ux_financeiro_receita_agendamento'");
       expect(index.rows).toHaveLength(1);
+      const assistantTables = await pool.query<{ table_name: string }>("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('assistant_messages','assistant_contacts','integration_settings','assistant_usage')");
+      expect(assistantTables.rows.map((row) => row.table_name).sort()).toEqual(["assistant_contacts", "assistant_messages", "assistant_usage", "integration_settings"]);
     } finally { await pool.end(); }
   });
 });
