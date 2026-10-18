@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentAdminFromCookies } from "@/lib/admin-auth";
 import { LogoutButton } from "@/app/admin/logout-button";
+import { hasCapability } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ export default async function AdminPage() {
       <a className="rounded-xl border border-white/10 bg-[var(--zd-color-surface)] p-5" href="/admin/catalogo">Abrir catálogo</a>
       <a className="rounded-xl border border-white/10 bg-[var(--zd-color-surface)] p-5" href="/admin/agenda">Abrir agenda</a>
       <a className="rounded-xl border border-white/10 bg-[var(--zd-color-surface)] p-5" href="/admin/configuracoes">Configurações do tenant</a>
+      {hasCapability("assistant") && <a className="rounded-xl border border-white/10 bg-[var(--zd-color-surface)] p-5" href="/admin/assistente">Assistente</a>}
     </main>
   );
 }

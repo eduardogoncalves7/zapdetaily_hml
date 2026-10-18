@@ -19,6 +19,10 @@ const envSchema = z.object({
   ZD_ADMIN_SESSION_TTL_SECONDS: z.coerce.number().int().positive().default(28800),
   ZD_BOOKING_INTERVAL_MINUTES: z.coerce.number().int().positive().default(30),
   ZD_BOOKING_CAPACITY: z.coerce.number().int().positive().default(1),
+  ASSISTANT_ENABLED: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
+  ASSISTANT_OWNER_ALLOWLIST: z.string().default(""),
+  ASSISTANT_DAILY_LIMIT: z.coerce.number().int().positive().default(100),
+  ASSISTANT_MONTHLY_LIMIT: z.coerce.number().int().positive().default(3000),
   ZD_TENANT_VEHICLE_SIZES: z.string().default("[{\"key\":\"moto\",\"label\":\"Moto\"},{\"key\":\"pequeno\",\"label\":\"Pequeno\"},{\"key\":\"medio\",\"label\":\"Médio\"},{\"key\":\"grande\",\"label\":\"Grande\"}]"),
 });
 
