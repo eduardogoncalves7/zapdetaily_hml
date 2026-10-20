@@ -28,11 +28,11 @@ export type TenantSettings = {
 };
 
 const DEFAULT_COLORS: TenantColors = {
-  primary: "#94a3b8",
-  accent: "#cbd5e1",
-  background: "#0f172a",
-  foreground: "#e2e8f0",
-  surface: "#1e293b",
+  primary: "#74786f",
+  accent: "#686c65",
+  background: "#f3f1ed",
+  foreground: "#202422",
+  surface: "#e4e0d9",
 };
 
 const DEFAULT_VEHICLE_SIZES: VehicleSize[] = [

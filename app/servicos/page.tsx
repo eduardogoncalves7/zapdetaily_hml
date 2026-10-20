@@ -1,18 +1,19 @@
-import Image from "next/image";
-import Link from "next/link";
 import type { Metadata } from "next";
-import { getDefaultTenantId, listServices } from "@/services/catalog";
-import { getTenantSettings } from "@/lib/tenant-settings";
-import { hasCapability } from "@/lib/plans";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ImagePlaceholder } from "@/components/image-placeholder";
+import { SiteHeader } from "@/components/site-header";
+import { hasCapability } from "@/lib/plans";
+import { getTenantSettings } from "@/lib/tenant-settings";
+import { getDefaultTenantId, listServices } from "@/services/catalog";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Serviços", description: "Conheça os serviços disponíveis." };
+export const metadata: Metadata = { title: "Servicos", description: "Conheca os servicos de estetica automotiva." };
 
 export default async function ServicesPage() {
   if (!hasCapability("booking")) notFound();
   const settings = await getTenantSettings();
   let services = [] as Awaited<ReturnType<typeof listServices>>;
   try { const tenantId = await getDefaultTenantId(); if (tenantId) services = await listServices(tenantId); } catch { services = []; }
-  return <main className="mx-auto min-h-screen max-w-5xl px-5 py-12 sm:px-8"><p className="text-sm uppercase tracking-[0.25em] text-[var(--zd-color-primary)]">{settings.nome}</p><h1 className="mt-3 text-4xl font-semibold">Serviços</h1><p className="mt-3 max-w-2xl text-[var(--zd-color-accent)]">Escolha o cuidado que combina com o seu veículo.</p><div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{services.map((service) => <Link key={service.id} href={`/servicos/${service.slug}`} className="overflow-hidden rounded-2xl border border-white/10 bg-[var(--zd-color-surface)] transition hover:border-[var(--zd-color-primary)]">{service.fotoPath ? <Image src={service.fotoPath} alt="" width={800} height={500} className="h-44 w-full object-cover" /> : <div className="h-44 bg-gradient-to-br from-[var(--zd-color-surface)] to-[var(--zd-color-background)]" />}<div className="p-5"><p className="text-xs uppercase tracking-widest text-[var(--zd-color-primary)]">{service.categoriaNome ?? "Serviço"}</p><h2 className="mt-2 text-xl font-semibold">{service.nome}</h2><p className="mt-2 line-clamp-3 text-sm text-[var(--zd-color-accent)]">{service.descricao}</p><p className="mt-5 text-sm">{service.duracaoMinutos} min</p></div></Link>)}{services.length === 0 && <p className="rounded-2xl border border-white/10 p-6 text-[var(--zd-color-accent)]">Nenhum serviço publicado no momento.</p>}</div></main>;
+  return <main><SiteHeader settings={settings} /><section className="site-shell py-14 sm:py-24"><div className="grid gap-8 lg:grid-cols-[.8fr_1.2fr] lg:items-end"><div><p className="eyebrow">Catalogo de cuidados</p><h1 className="display-title mt-5">Servicos para cada momento.</h1></div><p className="muted max-w-lg text-base leading-7 lg:justify-self-end">Escolha o servico, o porte do veiculo e o melhor horario para voce. As imagens podem ser adicionadas depois pelo painel.</p></div><div className="mt-14 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">{services.map((service) => <Link key={service.id} href={"/servicos/" + service.slug} className="service-card"><ImagePlaceholder label="Imagem do servico" compact /><div className="service-card__body"><div className="service-card__meta"><span>{service.categoriaNome ?? "Cuidado"}</span><span>{service.duracaoMinutos} min</span></div><h2>{service.nome}</h2><p className="muted line-clamp-3">{service.descricao}</p><span className="mt-5 inline-block text-xs font-bold uppercase tracking-[.12em] underline underline-offset-4">Ver detalhes ↗</span></div></Link>)}{services.length === 0 && <div className="sm:col-span-2 lg:col-span-3"><ImagePlaceholder label="Seu catalogo aparecera aqui" /></div>}</div></section></main>;
 }

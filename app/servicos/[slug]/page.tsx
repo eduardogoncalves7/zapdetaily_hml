@@ -1,17 +1,22 @@
-import Image from "next/image";
-import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getDefaultTenantId, getPriceForVehicleSize, getServiceBySlug } from "@/services/catalog";
-import { getTenantSettings } from "@/lib/tenant-settings";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ImagePlaceholder } from "@/components/image-placeholder";
+import { SiteHeader } from "@/components/site-header";
 import { hasCapability } from "@/lib/plans";
+import { getTenantSettings } from "@/lib/tenant-settings";
+import { getDefaultTenantId, getPriceForVehicleSize, getServiceBySlug } from "@/services/catalog";
 
 export const dynamic = "force-dynamic";
 type Props = { params: Promise<{ slug: string }> };
 async function load(slug: string) { const tenantId = await getDefaultTenantId(); return tenantId ? getServiceBySlug(tenantId, slug) : null; }
-export async function generateMetadata({ params }: Props): Promise<Metadata> { const service = await load((await params).slug).catch(() => null); return { title: service?.nome ?? "Serviço", description: service?.descricao ?? "Detalhes do serviço." }; }
+export async function generateMetadata({ params }: Props): Promise<Metadata> { const service = await load((await params).slug).catch(() => null); return { title: service?.nome ?? "Servico", description: service?.descricao ?? "Detalhes do servico." }; }
+
 export default async function ServiceDetailPage({ params }: Props) {
   if (!hasCapability("booking")) notFound();
-  const service = await load((await params).slug).catch(() => null); if (!service) notFound();
+  const service = await load((await params).slug).catch(() => null);
+  if (!service) notFound();
   const settings = await getTenantSettings();
-  return <main className="mx-auto min-h-screen max-w-4xl px-5 py-12 sm:px-8">{service.fotoPath && <Image src={service.fotoPath} alt="" width={1200} height={700} className="max-h-[28rem] w-full rounded-3xl object-cover" />}<p className="mt-8 text-sm uppercase tracking-[0.25em] text-[var(--zd-color-primary)]">{service.categoriaNome ?? settings.nome}</p><h1 className="mt-3 text-4xl font-semibold">{service.nome}</h1><p className="mt-4 text-lg text-[var(--zd-color-accent)]">{service.descricao}</p><p className="mt-5">Duração: {service.duracaoMinutos} minutos</p><section className="mt-8 rounded-2xl border border-white/10 bg-[var(--zd-color-surface)] p-5"><h2 className="text-lg font-semibold">Preços por porte</h2><div className="mt-4 grid gap-3 sm:grid-cols-2">{settings.portesVeiculo.map((size) => { const price = getPriceForVehicleSize(service, size.key); return <div key={size.key} className="flex justify-between rounded-xl border border-white/10 px-4 py-3"><span>{size.label}</span><span>{price ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(price.valorCentavos / 100) : "Preço sob consulta"}</span></div>; })}</div></section>{service.itensInclusos.length > 0 && <section className="mt-8"><h2 className="text-lg font-semibold">Itens inclusos</h2><ul className="mt-3 list-disc space-y-2 pl-5 text-[var(--zd-color-accent)]">{service.itensInclusos.map((item) => <li key={item}>{item}</li>)}</ul></section>}</main>;
+  const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+  return <main><SiteHeader settings={settings} /><section className="site-shell py-12 sm:py-20"><Link href="/servicos" className="text-xs font-bold uppercase tracking-[.14em] opacity-60">Voltar ao catalogo</Link><div className="mt-8 grid gap-10 lg:grid-cols-[1.1fr_.9fr] lg:items-start lg:gap-16"><ImagePlaceholder label="Espaco reservado para foto do servico" className="min-h-[390px] sm:min-h-[520px]" /><div><p className="eyebrow">{service.categoriaNome ?? settings.nome}</p><h1 className="section-title mt-5">{service.nome}</h1><p className="muted mt-6 text-lg leading-8">{service.descricao}</p><div className="mt-8 flex items-center gap-4 border-y border-black/15 py-5 text-sm"><span className="font-bold uppercase tracking-[.12em]">Duracao</span><span className="muted">{service.duracaoMinutos} minutos</span></div><div className="mt-8"><p className="eyebrow">A partir de</p><div className="mt-4 grid gap-2">{settings.portesVeiculo.map((size) => { const price = getPriceForVehicleSize(service, size.key); return <div key={size.key} className="flex justify-between border-b border-black/10 py-3 text-sm"><span>{size.label}</span><span className="font-semibold">{price ? money.format(price.valorCentavos / 100) : "Sob consulta"}</span></div>; })}</div></div><Link href="/agendamento" className="button-primary mt-8 w-full sm:w-auto">Escolher este cuidado <span aria-hidden="true">↗</span></Link></div></div>{service.itensInclusos.length > 0 && <div className="mt-16 max-w-2xl"><p className="eyebrow">O que esta incluso</p><div className="mt-5">{service.itensInclusos.map((item, index) => <div className="numbered-row" key={item}><span className="numbered-row__number">0{index + 1}</span><span>{item}</span></div>)}</div></div>}</section></main>;
 }
